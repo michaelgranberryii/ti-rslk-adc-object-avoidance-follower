@@ -75,12 +75,16 @@ int32_t Set_Point = 250;
 uint16_t Duty_Cycle_Left;
 uint16_t Duty_Cycle_Right;
 
+// Flag to help driving the robot forward and backwards
+// Flag is initialized to go forward if the robot started in the gray area between too close and too far (look controller_3())
+int back_flag = 0;  // if you start from gray area, go forward
+
 /**
  * @brief This function updates the PWM duty cycle values for the motors based on the measured distance values.
  *
  * This function calculates the error between the measured distances of the left and right sensors
- * and adjusts the motor duty cycles to maintain a desired distance. It also ensures that the
- * duty cycles remain within the defined range. It is used to drive along walls in a track.
+ * and and uses it along with a proportional constant to adjust the motor duty cycles to maintain a desired distance away from detected objects.
+ * It also ensures that the duty cycles remain within the defined range. It is used to drive along walls in a track.
  *
  * @return None
  */
@@ -133,8 +137,11 @@ void Controller_1()
 }
 
 /**
- * @brief
+ * @brief This function updates the PWM duty cycle values for the motors based on the measured distance values.
  *
+ * This function calculates the error between the measured distances of the left and right sensors
+ * and and uses it along with a proportional constant to adjust the motor duty cycles to get closer to objects within a desired distance.
+ * It also ensures that the duty cycles remain within the defined range. It is used to follow objects until it reaches a close distance from them then it stops.
  *
  * @return None
  */
@@ -191,13 +198,14 @@ void Controller_2()
 }
 
 /**
- * @brief
+ * @brief This function is a helper function that drives the robot backwards.
  *
+ * This function calculates the error between the measured distances of the left and right sensors
+ * and and uses it along with a proportional constant to adjust the motor duty cycles to get away from objects within a desired distance.
+ * It also ensures that the duty cycles remain within the defined range. It is used in controller_3() to go back when a very close object is detected.
  *
  * @return None
  */
-int flag;
-
 void go_back(void) {
     // Check if both the left and right distance sensor readings are greater than the desired distance
     if ((Converted_Distance_Left > DESIRED_DISTANCE) && (Converted_Distance_Right > DESIRED_DISTANCE))
@@ -245,6 +253,15 @@ void go_back(void) {
 #endif
 }
 
+/**
+ * @brief This function is a helper function that drives the robot forward.
+ *
+ * This function calculates the error between the measured distances of the left and right sensors
+ * and and uses it along with a proportional constant to adjust the motor duty cycles to get closer to objects within a desired distance.
+ * It also ensures that the duty cycles remain within the defined range. It is used in controller_3() to go forward and try to follow objects.
+ *
+ * @return None
+ */
 void follow_forward(void) {
     // Check if both the left and right distance sensor readings are greater than the desired distance
     if ((Converted_Distance_Left > DESIRED_DISTANCE) && (Converted_Distance_Right > DESIRED_DISTANCE))
@@ -292,20 +309,27 @@ void follow_forward(void) {
 #endif
 }
 
-int back_flag = 0;  // if you start from gray area, go forward
+/**
+ * @brief This function updates the PWM duty cycle values for the motors based on the measured distance values to go backwards and forward.
+ *
+ * This function uses the two helper functions go_back() and follow_forward() to drive forward until it's close to an object. It start reversing until
+ * it's far. Within these two thresholds (gray area), it determines whether to move forward or backwards.
+ *
+ * @return None
+ */
 void Controller_3()
 {
-    if ((Converted_Distance_Left < TOO_CLOSE_DISTANCE) || (Converted_Distance_Right < TOO_CLOSE_DISTANCE))  {
+    if ((Converted_Distance_Left < TOO_CLOSE_DISTANCE) || (Converted_Distance_Right < TOO_CLOSE_DISTANCE))  { // Too close
 
         go_back();
         back_flag = 1;
 
-    } else if ((Converted_Distance_Left > TOO_FAR_DISTANCE) && (Converted_Distance_Right > TOO_FAR_DISTANCE)) {
+    } else if ((Converted_Distance_Left > TOO_FAR_DISTANCE) && (Converted_Distance_Right > TOO_FAR_DISTANCE)) { // Too far
 
         follow_forward();
         back_flag = 0;
 
-    } else {
+    } else { // In between (gray area)
         if (back_flag) {
             go_back();
         } else {
@@ -313,7 +337,6 @@ void Controller_3()
         }
 
     }
-
 }
 
 /**
