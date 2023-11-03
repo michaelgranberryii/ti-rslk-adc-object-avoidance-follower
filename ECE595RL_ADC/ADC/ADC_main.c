@@ -35,15 +35,15 @@
 #include "../inc/LPF.h"
 #include "../inc/Analog_Distance_Sensor.h"
 
-#define CONTROLLER_1    1
+//#define CONTROLLER_1    1
 //#define CONTROLLER_2    1
-//#define CONTROLLER_3    1
+#define CONTROLLER_3    1
 
-#define DEBUG_ACTIVE    1
+//#define DEBUG_ACTIVE    1
 
 // Initialize constant distance values (in mm)
-#define TOO_CLOSE_DISTANCE  200
-#define TOO_FAR_DISTANCE    400
+#define TOO_CLOSE_DISTANCE  150
+#define TOO_FAR_DISTANCE    700
 #define DESIRED_DISTANCE    250
 
 // Initialize constant PWM duty cycle values for the motors
@@ -140,7 +140,54 @@ void Controller_1()
  */
 void Controller_2()
 {
+    if ((Converted_Distance_Left < TOO_CLOSE_DISTANCE) || (Converted_Distance_Right < TOO_CLOSE_DISTANCE)) {
+        Motor_Stop();
+    } else {
+        // Check if both the left and right distance sensor readings are greater than the desired distance
+        if ((Converted_Distance_Left > DESIRED_DISTANCE) && (Converted_Distance_Right > DESIRED_DISTANCE))
+        {
+            // Calculate the set point as the average of the left and right sensor distance readings
+            Set_Point = (Converted_Distance_Left + Converted_Distance_Right) / 2;
+        }
+        else
+        {
+            // If at least one distance sensor reading is below the desired distance, assign the set point to the desired distance
+            Set_Point = DESIRED_DISTANCE;
+        }
 
+        // Calculate the error based on the sensor readings
+        if (Converted_Distance_Left < Converted_Distance_Right)
+        {
+            Error = Converted_Distance_Left - Set_Point;
+        }
+        else
+        {
+            Error = Set_Point - Converted_Distance_Right;
+        }
+
+        // Calculate the new duty cycle for the right motor based on the error and proportional constant (Kp)
+        Duty_Cycle_Right = PWM_NOMINAL - (Kp * Error);
+
+        // Calculate the new duty cycle for the left motor based on the error and proportional constant (Kp)
+        Duty_Cycle_Left  = PWM_NOMINAL + (Kp * Error);
+
+        // Ensure that the duty cycle for the right motor does not go below the minimum PWM value
+        if (Duty_Cycle_Right < PWM_MIN) Duty_Cycle_Right = PWM_MIN;
+
+        // Ensure that the duty cycle for the right motor does not exceed the maximum PWM value
+        if (Duty_Cycle_Right > PWM_MAX) Duty_Cycle_Right = PWM_MAX;
+
+        // Ensure that the duty cycle for the left motor does not go below the minimum PWM value
+        if (Duty_Cycle_Left  < PWM_MIN) Duty_Cycle_Left  = PWM_MIN;
+
+        // Ensure that the duty cycle for the left motor does not exceed the maximum PWM value
+        if (Duty_Cycle_Left  > PWM_MAX) Duty_Cycle_Left  = PWM_MAX;
+
+    #ifndef DEBUG_ACTIVE
+        // Apply the updated PWM duty cycle values to the motors
+        Motor_Forward(Duty_Cycle_Left, Duty_Cycle_Right);
+    #endif
+    }
 }
 
 /**
@@ -149,8 +196,123 @@ void Controller_2()
  *
  * @return None
  */
+int flag;
+
+void go_back(void) {
+    // Check if both the left and right distance sensor readings are greater than the desired distance
+    if ((Converted_Distance_Left > DESIRED_DISTANCE) && (Converted_Distance_Right > DESIRED_DISTANCE))
+    {
+        // Calculate the set point as the average of the left and right sensor distance readings
+        Set_Point = (Converted_Distance_Left + Converted_Distance_Right) / 2;
+    }
+    else
+    {
+        // If at least one distance sensor reading is below the desired distance, assign the set point to the desired distance
+        Set_Point = DESIRED_DISTANCE;
+    }
+
+    // Calculate the error based on the sensor readings
+    if (Converted_Distance_Left < Converted_Distance_Right)
+    {
+        Error = Converted_Distance_Left - Set_Point;
+    }
+    else
+    {
+        Error = Set_Point - Converted_Distance_Right;
+    }
+
+    // Calculate the new duty cycle for the right motor based on the error and proportional constant (Kp)
+    Duty_Cycle_Right = PWM_NOMINAL - (Kp * Error);
+
+    // Calculate the new duty cycle for the left motor based on the error and proportional constant (Kp)
+    Duty_Cycle_Left  = PWM_NOMINAL + (Kp * Error);
+
+    // Ensure that the duty cycle for the right motor does not go below the minimum PWM value
+    if (Duty_Cycle_Right < PWM_MIN) Duty_Cycle_Right = PWM_MIN;
+
+    // Ensure that the duty cycle for the right motor does not exceed the maximum PWM value
+    if (Duty_Cycle_Right > PWM_MAX) Duty_Cycle_Right = PWM_MAX;
+
+    // Ensure that the duty cycle for the left motor does not go below the minimum PWM value
+    if (Duty_Cycle_Left  < PWM_MIN) Duty_Cycle_Left  = PWM_MIN;
+
+    // Ensure that the duty cycle for the left motor does not exceed the maximum PWM value
+    if (Duty_Cycle_Left  > PWM_MAX) Duty_Cycle_Left  = PWM_MAX;
+
+#ifndef DEBUG_ACTIVE
+    // Apply the updated PWM duty cycle values to the motors
+    Motor_Backward(Duty_Cycle_Left, Duty_Cycle_Right);
+#endif
+}
+
+void follow_forward(void) {
+    // Check if both the left and right distance sensor readings are greater than the desired distance
+    if ((Converted_Distance_Left > DESIRED_DISTANCE) && (Converted_Distance_Right > DESIRED_DISTANCE))
+    {
+        // Calculate the set point as the average of the left and right sensor distance readings
+        Set_Point = (Converted_Distance_Left + Converted_Distance_Right) / 2;
+    }
+    else
+    {
+        // If at least one distance sensor reading is below the desired distance, assign the set point to the desired distance
+        Set_Point = DESIRED_DISTANCE;
+    }
+
+    // Calculate the error based on the sensor readings
+    if (Converted_Distance_Left < Converted_Distance_Right)
+    {
+        Error = Converted_Distance_Left - Set_Point;
+    }
+    else
+    {
+        Error = Set_Point - Converted_Distance_Right;
+    }
+
+    // Calculate the new duty cycle for the right motor based on the error and proportional constant (Kp)
+    Duty_Cycle_Right = PWM_NOMINAL - (Kp * Error);
+
+    // Calculate the new duty cycle for the left motor based on the error and proportional constant (Kp)
+    Duty_Cycle_Left  = PWM_NOMINAL + (Kp * Error);
+
+    // Ensure that the duty cycle for the right motor does not go below the minimum PWM value
+    if (Duty_Cycle_Right < PWM_MIN) Duty_Cycle_Right = PWM_MIN;
+
+    // Ensure that the duty cycle for the right motor does not exceed the maximum PWM value
+    if (Duty_Cycle_Right > PWM_MAX) Duty_Cycle_Right = PWM_MAX;
+
+    // Ensure that the duty cycle for the left motor does not go below the minimum PWM value
+    if (Duty_Cycle_Left  < PWM_MIN) Duty_Cycle_Left  = PWM_MIN;
+
+    // Ensure that the duty cycle for the left motor does not exceed the maximum PWM value
+    if (Duty_Cycle_Left  > PWM_MAX) Duty_Cycle_Left  = PWM_MAX;
+
+#ifndef DEBUG_ACTIVE
+    // Apply the updated PWM duty cycle values to the motors
+    Motor_Forward(Duty_Cycle_Left, Duty_Cycle_Right);
+#endif
+}
+
+int back_flag = 0;  // if you start from gray area, go forward
 void Controller_3()
 {
+    if ((Converted_Distance_Left < TOO_CLOSE_DISTANCE) || (Converted_Distance_Right < TOO_CLOSE_DISTANCE))  {
+
+        go_back();
+        back_flag = 1;
+
+    } else if ((Converted_Distance_Left > TOO_FAR_DISTANCE) && (Converted_Distance_Right > TOO_FAR_DISTANCE)) {
+
+        follow_forward();
+        back_flag = 0;
+
+    } else {
+        if (back_flag) {
+            go_back();
+        } else {
+            follow_forward();
+        }
+
+    }
 
 }
 
@@ -174,6 +336,12 @@ void SysTick_Handler(void)
     #endif
 
     // Your function for Task 1 goes here (Controller_2)
+//    if ((Converted_Distance_Left < 100) || (Converted_Distance_Right < 100)) {
+//        Motor_Stop();
+//    } else {
+
+        Controller_2();
+//    }
 
 #elif defined CONTROLLER_3
     #if defined CONTROLLER_1 || CONTROLLER_2
@@ -181,6 +349,7 @@ void SysTick_Handler(void)
     #endif
 
     // Your function for Task 2 goes here (Controller_3)
+    Controller_3();
 
 #else
     #error "Define either one of the options: CONTROLLER_1, CONTROLLER_2, or CONTROLLER_3."
